@@ -29,6 +29,8 @@ Bonus items:
 • Adding labels for tasks
 • Documentation illustrating the design and thought process for the implemented solution
 
+![Task Api Spec](./docs/images/task-api.png)
+
 ##TODO
 
 - pre-commit
