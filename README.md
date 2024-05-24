@@ -47,9 +47,15 @@ Bonus items:
   - resources
   - request structure
   - response structure
+    - common error format
   - edge cases
 - model design
 - migrations
+- get tasks endpoint
+- update task endpoint
+- delete task endpoint
+- restore task endpoint
+- database set
 
 ## Trade Offs & Assumptions
 
