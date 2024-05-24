@@ -2,7 +2,7 @@ from uuid import UUID, uuid4
 from typing import Any
 
 from dependency_injector.wiring import inject, Provide
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 
 from app.api.resources import CreateTaskRequestBody, StandardResponse, TaskResource
 from app.containers import Container
@@ -20,9 +20,10 @@ router = APIRouter()
 def create_task(
     create_task_request_body: CreateTaskRequestBody,
     task_manager: TaskManager = Depends(Provide[Container.task_manager]),
+    user_id: UUID = uuid4(),
 ) -> StandardResponse[TaskResource]:
     created_task = task_manager.create_task(
-        CreateTask(**create_task_request_body.model_dump(), user_id=uuid4())
+        CreateTask(**create_task_request_body.model_dump(), user_id=user_id)
     )
     response = StandardResponse[TaskResource](data=created_task.model_dump())
     return response
@@ -35,7 +36,14 @@ def create_task(
 )
 @inject
 def get_task(
-    task_id: UUID, task_manager: TaskManager = Depends(Provide[Container.task_manager])
+    task_id: UUID,
+    user_id: UUID,
+    task_manager: TaskManager = Depends(Provide[Container.task_manager]),
 ) -> Any:
-    task = task_manager.get_task(task_id)
+    task = task_manager.get_task(task_id, user_id)
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"key": "task_not_found", "message": "task not found"},
+        )
     return StandardResponse[TaskResource](data=task.model_dump())

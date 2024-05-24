@@ -1,5 +1,4 @@
-import uuid
-
+from uuid import UUID, uuid4
 import pytest
 
 from app.domain.task_managers import CreateTask, InMemoryTaskManager, Task, TaskStatus
@@ -10,10 +9,12 @@ def in_memory_task_manager() -> InMemoryTaskManager:
     return InMemoryTaskManager()
 
 
-def test_create_task(in_memory_task_manager: InMemoryTaskManager) -> None:
-    task_to_create_1 = CreateTask(name="Dishes", user_id=uuid.uuid4())
+def test_create_task(
+    in_memory_task_manager: InMemoryTaskManager, user_id_1: UUID
+) -> None:
+    task_to_create_1 = CreateTask(name="Dishes", user_id=user_id_1)
     task_to_create_2 = CreateTask(
-        name="Wash Clothes", user_id=uuid.uuid4(), status=TaskStatus.DOING
+        name="Wash Clothes", user_id=user_id_1, status=TaskStatus.DOING
     )
     created_task_1 = in_memory_task_manager.create_task(task_to_create_1)
     created_task_2 = in_memory_task_manager.create_task(task_to_create_2)
@@ -37,8 +38,31 @@ def test_create_task(in_memory_task_manager: InMemoryTaskManager) -> None:
     ]
 
     expected_tasks = [
-        in_memory_task_manager.get_task(created_task_1.id),
-        in_memory_task_manager.get_task(created_task_2.id),
+        in_memory_task_manager.get_task(created_task_1.id, user_id_1),
+        in_memory_task_manager.get_task(created_task_2.id, user_id_1),
     ]
 
     assert [created_task_1, created_task_2] == expected_tasks
+
+
+def test_get_task_returns_none(
+    in_memory_task_manager: InMemoryTaskManager, user_id_1: UUID, user_id_2: UUID
+) -> None:
+    user_id_3 = uuid4()
+
+    created_task_1 = in_memory_task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1)
+    )
+    created_task_2 = in_memory_task_manager.create_task(
+        CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DOING)
+    )
+
+    assert (
+        in_memory_task_manager.get_task(task_id=created_task_1.id, user_id=user_id_3)
+        is None
+    )
+    assert (
+        in_memory_task_manager.get_task(task_id=created_task_1.id, user_id=user_id_2)
+        is None
+    )
+    assert in_memory_task_manager.get_task(task_id=None, user_id=user_id_1) is None

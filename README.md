@@ -34,19 +34,26 @@ Bonus items:
 ##TODO
 
 - pre-commit
-  - black code formatting
+  - ~~black code formatting~~
   - linting
 - project setup
   - ~~fastapi~~
-  - directory structure
-    - tests
-    - routes
-    - dependency injector
-- spec out task api endpoints
-  - endpoints
+  - ~~directory structure~~
+    - ~~tests~~
+    - ~~routes~~
+    - ~~dependency injector~~
+- ~~spec out task api endpoints~~
+  - ~~endpoints~~
   - resources
   - request structure
   - response structure
   - edge cases
 - model design
 - migrations
+
+## Trade Offs & Assumptions
+
+I am not going to implement proper authentication. I will assume that user management and authentication is handled by a middleware or api gateway or authentication service, and will use a query parameter to set the user_id.
+I will also assume no user knows another users user_id.
+I have chosen a query parameter so that swagger ui is easy to use. You can't edit request headers easily without editing the request headers manually via the web console or browser extension. 
+I don't want to spend time configuring authentication properly using one of many authentication mechanisms.

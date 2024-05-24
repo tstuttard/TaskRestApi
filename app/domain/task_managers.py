@@ -30,6 +30,7 @@ class Task(BaseModel):
     labels: List[str] = []
     due_date: Optional[date] = None
     sub_tasks: List = []
+    user_id: UUID
 
 
 class TaskManager(metaclass=abc.ABCMeta):
@@ -39,12 +40,12 @@ class TaskManager(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_task(self, task_id: UUID) -> Task:
+    def get_task(self, task_id: UUID, user_id: UUID) -> Task:
         pass
 
 
 class InMemoryTaskManager(TaskManager):
-    tasks: Dict[UUID, Task]
+    tasks: Dict[UUID, Dict[UUID, Task]]
 
     def __init__(self, tasks: Dict[UUID, Task] = None):
         if tasks is None:
@@ -59,9 +60,16 @@ class InMemoryTaskManager(TaskManager):
             labels=create_task.labels,
             due_date=create_task.due_date,
             sub_tasks=create_task.sub_tasks,
+            user_id=create_task.user_id,
         )
-        self.tasks.update({task.id: task})
+        if task.user_id not in self.tasks:
+            self.tasks.update({task.user_id: {task.id: task}})
+        else:
+            self.tasks.get(task.user_id).update({task.id: task})
+
         return task
 
-    def get_task(self, task_id: UUID) -> Task:
-        return self.tasks.get(task_id)
+    def get_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
+        if user_id not in self.tasks:
+            return None
+        return self.tasks.get(user_id).get(task_id, None)

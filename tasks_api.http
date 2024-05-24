@@ -4,13 +4,14 @@ GET http://127.0.0.1:8000/
 Accept: application/json
 
 ###
+@user_id_1 = "c2daaf1e-b373-49e2-94f3-1a55ff80b0d1"
+@user_id_2 = "a6883ad9-794e-4ba9-903a-eed539b84677"
 
-POST http://127.0.0.1:8000/tasks
+POST http://127.0.0.1:8000/tasks?user_id={{user_id_1}}
 Accept: application/json
 
 {
    "name": "Dishes"
-
 }
 
 > {%
@@ -21,6 +22,11 @@ client.global.set("task_id", response.body.data.id);
 
 ###
 
-GET http://127.0.0.1:8000/tasks/{{task_id}}
+GET http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_1}}
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_2}}
 Accept: application/json
 
