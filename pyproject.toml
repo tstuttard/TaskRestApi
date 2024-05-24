@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "taskrestapi"
+version = "0.1.0"
+description = "REST API for managing tasks using poetry, FastAPI and dependency-injector"
+authors = ["Tom Stuttard <tom.e.stuttard@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.111.0"
+uvicorn = "^0.29.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
