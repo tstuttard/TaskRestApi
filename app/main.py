@@ -10,7 +10,7 @@ def create_app() -> FastAPI:
     app = FastAPI()
     app.include_router(api_router)
     container = Container()
-    container.task_manager.override(providers.Factory(InMemoryTaskManager))
+    container.task_manager.override(providers.Singleton(InMemoryTaskManager))
     app.container = container
     return app
 

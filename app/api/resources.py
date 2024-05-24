@@ -1,9 +1,10 @@
 from datetime import date
-from enum import Enum
 from typing import Generic, List, Optional, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel
+
+from app.domain.task_managers import TaskStatus
 
 M = TypeVar("M", bound=BaseModel)
 
@@ -14,17 +15,18 @@ class StandardResponse(BaseModel, Generic[M]):
     data: M
 
 
-class TaskStatus(Enum):
-    PENDING = "Pending"
-    DOING = "Doing"
-    BLOCKED = "Blocked"
-    DONE = "Done"
+class CreateTaskRequestBody(BaseModel):
+    name: str
+    status: TaskStatus = TaskStatus.PENDING
+    labels: List[str] = []
+    due_date: Optional[date] = None
+    sub_tasks: List = []
 
 
 class TaskResource(BaseModel):
     id: Optional[UUID] = None
     name: str
     status: TaskStatus = TaskStatus.PENDING
-    labels: List[str]
+    labels: List[str] = []
     due_date: Optional[date] = None
-    sub_tasks: List
+    sub_tasks: List = []
