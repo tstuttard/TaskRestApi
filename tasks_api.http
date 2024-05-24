@@ -1,0 +1,26 @@
+# Test your FastAPI endpoints
+
+GET http://127.0.0.1:8000/
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/tasks
+Accept: application/json
+
+{
+   "name": "Dishes"
+
+}
+
+> {%
+console.log(response.body.data.id)
+
+client.global.set("task_id", response.body.data.id);
+%}
+
+###
+
+GET http://127.0.0.1:8000/tasks/{{task_id}}
+Accept: application/json
+
