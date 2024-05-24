@@ -1,9 +1,12 @@
 from uuid import UUID, uuid4
 from typing import Any
 
-from fastapi import APIRouter, status
+from dependency_injector.wiring import inject, Provide
+from fastapi import APIRouter, Depends, status
 
 from app.api.resources import StandardResponse, TaskResource, TaskStatus
+from app.containers import Container
+from domain.task_managers import TaskManager
 
 router = APIRouter()
 
@@ -13,8 +16,11 @@ router = APIRouter()
     response_model=StandardResponse[TaskResource],
     status_code=status.HTTP_201_CREATED,
 )
-def create_task() -> StandardResponse[TaskResource]:
-
+@inject
+def create_task(
+    task_manager: TaskManager = Depends(Provide[Container.task_manager]),
+) -> StandardResponse[TaskResource]:
+    task_manager.create_task({})
     return StandardResponse[TaskResource](
         data={
             "id": uuid4(),
