@@ -21,8 +21,9 @@ def test_create_task(client: TestClient) -> None:
         "data": {
             "id": create_task_payload["data"]["id"],  # id is generated from server
             "name": create_task_request_body["name"],
-            "status": "pending",
+            "status": "Pending",
             "due_date": None,
+            "labels": [],
             "sub_tasks": [],
         }
     }
