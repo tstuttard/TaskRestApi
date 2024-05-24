@@ -30,3 +30,21 @@ Bonus items:
 • Documentation illustrating the design and thought process for the implemented solution
 
 ##TODO
+
+- pre-commit
+  - black code formatting
+  - linting
+- project setup
+  - ~~fastapi~~
+  - directory structure
+    - tests
+    - routes
+    - dependency injector
+- spec out task api endpoints
+  - endpoints
+  - resources
+  - request structure
+  - response structure
+  - edge cases
+- model design
+- migrations
