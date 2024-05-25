@@ -1,8 +1,12 @@
+import json
 from uuid import UUID, uuid4
 import pytest
 
 from app.domain.task_managers import (
     CreateTask,
+    HistoryEntry,
+    HistoryEntryType,
+    HistoryEntryVersion,
     InMemoryTaskManager,
     Task,
     TaskStatus,
@@ -159,6 +163,19 @@ def test_delete_task(
 
     assert deleted_task == task_to_be_deleted
     assert in_memory_task_manager.get_task(task_to_be_deleted.id, user_id_1) is None
+    task_deleted = in_memory_task_manager.history.pop()
+
+    assert task_deleted == HistoryEntry(
+        id=task_deleted.id,
+        type=HistoryEntryType.TASK_DELETED,
+        version=HistoryEntryVersion.TASK,
+        event=deleted_task.model_dump_json(),
+    )
+
+    task_deleted_event = json.loads(task_deleted.model_dump().get("event"))
+    # TODO: figure out how to dynamically restore the HistoryEntry.event based on the version
+    task_from_event = Task(**task_deleted_event)
+    assert task_from_event == deleted_task
 
 
 def test_delete_task_returns_none(

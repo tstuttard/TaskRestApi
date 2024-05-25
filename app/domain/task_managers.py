@@ -1,7 +1,7 @@
 import abc
 from datetime import date
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
@@ -65,13 +65,34 @@ class TaskManager(metaclass=abc.ABCMeta):
         pass
 
 
+class HistoryEntryType(Enum):
+    TASK_DELETED = "TASK_DELETED"
+
+
+class HistoryEntryVersion(Enum):
+    TASK = "Task"
+
+
+class HistoryEntry(BaseModel):
+    id: UUID
+    type: HistoryEntryType = (HistoryEntryType.TASK_DELETED,)
+    version: HistoryEntryVersion
+    event: Any
+
+
 class InMemoryTaskManager(TaskManager):
     tasks: Dict[UUID, Dict[UUID, Task]]
+    history: List[HistoryEntry] = []
 
-    def __init__(self, tasks: Dict[UUID, Task] = None):
+    def __init__(
+        self, tasks: Dict[UUID, Task] = None, history: List[HistoryEntry] = None
+    ):
         if tasks is None:
             tasks = {}
+        if history is None:
+            history = []
         self.tasks = tasks
+        self.history = history
 
     def create_task(self, create_task: CreateTask) -> Task:
         task = Task(
@@ -121,6 +142,15 @@ class InMemoryTaskManager(TaskManager):
         if task_id not in user_tasks:
             return None
 
-        task_to_be_deleted = user_tasks.pop(task_id, None)
+        deleted_task = user_tasks.pop(task_id, None)
 
-        return task_to_be_deleted
+        self.history.append(
+            HistoryEntry(
+                id=deleted_task.id,
+                type=HistoryEntryType.TASK_DELETED,
+                version=HistoryEntryVersion.TASK,
+                event=deleted_task.model_dump_json(),
+            )
+        )
+
+        return deleted_task
