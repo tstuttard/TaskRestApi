@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import QueryParams
@@ -110,3 +110,84 @@ def test_get_tasks(client: TestClient, task_manager: TaskManager, user_id_1: UUI
     }
 
     assert get_tasks_response.status_code == status.HTTP_200_OK
+
+
+def test_update_task(client: TestClient, task_manager: TaskManager, user_id_1: UUID):
+    task = task_manager.create_task(CreateTask(name="Dishes", user_id=user_id_1))
+
+    update_task_request_body = {
+        "id": str(task.id),
+        "name": "Wash & Dry Dishes",
+        "status": "Done",
+        "due_date": None,
+        "labels": [],
+        "sub_tasks": [],
+    }
+    update_tasks_response = client.put(
+        f"/tasks/{task.id}",
+        params=QueryParams(user_id=user_id_1),
+        json=update_task_request_body,
+    )
+    update_task_payload = update_tasks_response.json()
+    assert update_task_payload == {
+        "data": {
+            # Since a PUT endpoint is essentially replacing the resource, we can assume that
+            # the response should match the request since a task has no dynamic properties
+            **update_task_request_body
+        }
+    }
+
+    assert update_tasks_response.status_code == status.HTTP_200_OK
+
+
+def test_update_task_id_mismatch(
+    client: TestClient, task_manager: TaskManager, user_id_1: UUID
+) -> None:
+    task = task_manager.create_task(CreateTask(name="Dishes", user_id=user_id_1))
+
+    update_task_request_body = {
+        "id": str(uuid4()),
+        "name": "Wash & Dry Dishes",
+        "status": "Done",
+        "due_date": None,
+        "labels": [],
+        "sub_tasks": [],
+    }
+    update_tasks_response = client.put(
+        f"/tasks/{task.id}",
+        params=QueryParams(user_id=user_id_1),
+        json=update_task_request_body,
+    )
+    update_task_payload = update_tasks_response.json()
+    assert update_task_payload == {
+        "detail": {
+            "key": "task_id_mismatch",
+            "message": "task is in request body does not match task id in URI",
+        }
+    }
+    assert update_tasks_response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_update_task_not_found(
+    client: TestClient, task_manager: TaskManager, user_id_1: UUID, user_id_2
+) -> None:
+    task = task_manager.create_task(CreateTask(name="Dishes", user_id=user_id_1))
+
+    update_task_request_body = {
+        "id": str(task.id),
+        "name": "Wash & Dry Dishes",
+        "status": "Done",
+        "due_date": None,
+        "labels": [],
+        "sub_tasks": [],
+    }
+    update_tasks_response = client.put(
+        f"/tasks/{task.id}",
+        params=QueryParams(user_id=user_id_2),
+        json=update_task_request_body,
+    )
+    update_task_payload = update_tasks_response.json()
+    assert update_task_payload == {
+        "detail": {"key": "task_not_found", "message": "task not found"}
+    }
+    assert update_tasks_response.status_code == status.HTTP_404_NOT_FOUND

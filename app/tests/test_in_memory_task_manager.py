@@ -1,7 +1,13 @@
 from uuid import UUID, uuid4
 import pytest
 
-from app.domain.task_managers import CreateTask, InMemoryTaskManager, Task, TaskStatus
+from app.domain.task_managers import (
+    CreateTask,
+    InMemoryTaskManager,
+    Task,
+    TaskStatus,
+    UpdateTask,
+)
 
 
 @pytest.fixture
@@ -85,3 +91,54 @@ def test_get_task_returns_none(
         is None
     )
     assert in_memory_task_manager.get_task(task_id=None, user_id=user_id_1) is None
+
+
+def test_update_tasks(
+    in_memory_task_manager: InMemoryTaskManager, user_id_1: UUID, user_id_2: UUID
+) -> None:
+
+    created_task_1 = in_memory_task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1)
+    )
+
+    fields_to_update = {
+        "name": "Wash & Dry Dishes",
+        "status": TaskStatus.DONE,
+    }
+    expected_task = created_task_1.model_copy(update=fields_to_update)
+
+    updated_task = in_memory_task_manager.update_task(
+        UpdateTask(**{**created_task_1.model_dump(), **fields_to_update}),
+        user_id_1,
+    )
+
+    assert updated_task == expected_task
+    assert (
+        in_memory_task_manager.get_task(created_task_1.id, user_id_1) == expected_task
+    )
+
+
+def test_update_task_returns_none(
+    in_memory_task_manager: InMemoryTaskManager, user_id_1: UUID, user_id_2: UUID
+) -> None:
+    user_id_3 = uuid4()
+
+    created_task_1 = in_memory_task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1)
+    )
+    created_task_2 = in_memory_task_manager.create_task(
+        CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DOING)
+    )
+
+    assert (
+        in_memory_task_manager.update_task(
+            UpdateTask(**created_task_1.model_dump()), user_id=user_id_3
+        )
+        is None
+    )
+    assert (
+        in_memory_task_manager.update_task(
+            UpdateTask(**created_task_1.model_dump()), user_id=user_id_2
+        )
+        is None
+    )

@@ -4,9 +4,14 @@ from typing import List
 from dependency_injector.wiring import inject, Provide
 from fastapi import APIRouter, Depends, status, HTTPException
 
-from app.api.resources import CreateTaskRequestBody, StandardResponse, TaskResource
+from app.api.resources import (
+    CreateTaskRequestBody,
+    StandardResponse,
+    TaskResource,
+    UpdateTaskRequestBody,
+)
 from app.containers import Container
-from app.domain.task_managers import CreateTask, TaskManager
+from app.domain.task_managers import CreateTask, TaskManager, UpdateTask
 
 router = APIRouter()
 
@@ -57,6 +62,40 @@ def get_task(
     task_manager: TaskManager = Depends(Provide[Container.task_manager]),
 ) -> StandardResponse[TaskResource]:
     task = task_manager.get_task(task_id, user_id)
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"key": "task_not_found", "message": "task not found"},
+        )
+    return StandardResponse[TaskResource](data=task.model_dump())
+
+
+@router.put(
+    "/{task_id}",
+    response_model=StandardResponse[TaskResource],
+    status_code=status.HTTP_200_OK,
+)
+@inject
+def update_task(
+    task_id: UUID,
+    user_id: UUID,
+    update_task_request_body: UpdateTaskRequestBody,
+    task_manager: TaskManager = Depends(Provide[Container.task_manager]),
+) -> StandardResponse[TaskResource]:
+
+    if task_id != update_task_request_body.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "key": "task_id_mismatch",
+                "message": "task is in request body does not match task id in URI",
+            },
+        )
+
+    task = task_manager.update_task(
+        UpdateTask(**update_task_request_body.model_dump()), user_id
+    )
+
     if task is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

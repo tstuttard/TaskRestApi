@@ -23,6 +23,15 @@ class CreateTask(BaseModel):
     user_id: UUID
 
 
+class UpdateTask(BaseModel):
+    id: UUID
+    name: str
+    status: TaskStatus
+    labels: List[str]
+    due_date: Optional[date]
+    sub_tasks: List
+
+
 class Task(BaseModel):
     id: UUID
     name: str
@@ -45,6 +54,10 @@ class TaskManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_tasks(self, user_id: UUID) -> List[Task]:
+        pass
+
+    @abc.abstractmethod
+    def update_task(self, update_task: UpdateTask, user_id: UUID) -> Optional[Task]:
         pass
 
 
@@ -84,3 +97,15 @@ class InMemoryTaskManager(TaskManager):
             return []
         else:
             return list(user_tasks.values())
+
+    def update_task(self, update_task: UpdateTask, user_id: UUID) -> Optional[Task]:
+        user_tasks = self.tasks.get(user_id)
+        if user_tasks is None:
+            return None
+        if update_task.id not in user_tasks:
+            return None
+
+        updated_task = Task(**{**update_task.model_dump(), "user_id": user_id})
+        user_tasks.update({update_task.id: updated_task})
+
+        return updated_task

@@ -23,6 +23,15 @@ class CreateTaskRequestBody(BaseModel):
     sub_tasks: List = []
 
 
+class UpdateTaskRequestBody(BaseModel):
+    id: Optional[UUID]
+    name: str
+    status: TaskStatus
+    labels: List[str]
+    due_date: Optional[date]
+    sub_tasks: List
+
+
 class TaskResource(BaseModel):
     id: Optional[UUID] = None
     name: str

@@ -41,3 +41,18 @@ Accept: application/json
 GET http://127.0.0.1:8000/tasks/?user_id={{user_id_2}}
 
 Accept: application/json
+
+###
+
+# Update Task
+PUT http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_1}}
+Accept: application/json
+
+{
+  "id": "{{task_id}}",
+  "name": "Wash & Dry Dishes",
+  "status": "Done",
+  "due_date": null,
+  "labels": [],
+  "sub_tasks": []
+}
