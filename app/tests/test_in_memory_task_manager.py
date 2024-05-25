@@ -45,6 +45,25 @@ def test_create_task(
     assert [created_task_1, created_task_2] == expected_tasks
 
 
+def test_get_tasks(
+    in_memory_task_manager: InMemoryTaskManager, user_id_1: UUID, user_id_2: UUID
+) -> None:
+
+    created_task_1 = in_memory_task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1)
+    )
+    created_task_2 = in_memory_task_manager.create_task(
+        CreateTask(name="Wash Clothes", user_id=user_id_1, status=TaskStatus.DOING)
+    )
+    created_task_3 = in_memory_task_manager.create_task(
+        CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DONE)
+    )
+
+    tasks = in_memory_task_manager.get_tasks(user_id_1)
+
+    assert tasks == [created_task_1, created_task_2]
+
+
 def test_get_task_returns_none(
     in_memory_task_manager: InMemoryTaskManager, user_id_1: UUID, user_id_2: UUID
 ) -> None:

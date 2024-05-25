@@ -43,6 +43,10 @@ class TaskManager(metaclass=abc.ABCMeta):
     def get_task(self, task_id: UUID, user_id: UUID) -> Task:
         pass
 
+    @abc.abstractmethod
+    def get_tasks(self, user_id: UUID) -> List[Task]:
+        pass
+
 
 class InMemoryTaskManager(TaskManager):
     tasks: Dict[UUID, Dict[UUID, Task]]
@@ -73,3 +77,10 @@ class InMemoryTaskManager(TaskManager):
         if user_id not in self.tasks:
             return None
         return self.tasks.get(user_id).get(task_id, None)
+
+    def get_tasks(self, user_id: UUID) -> List[Task]:
+        user_tasks = self.tasks.get(user_id)
+        if user_tasks is None:
+            return []
+        else:
+            return list(user_tasks.values())

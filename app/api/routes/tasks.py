@@ -1,5 +1,5 @@
 from uuid import UUID, uuid4
-from typing import Any
+from typing import List
 
 from dependency_injector.wiring import inject, Provide
 from fastapi import APIRouter, Depends, status, HTTPException
@@ -30,6 +30,22 @@ def create_task(
 
 
 @router.get(
+    "",
+    response_model=StandardResponse[List[TaskResource]],
+    status_code=status.HTTP_200_OK,
+)
+@inject
+def get_tasks(
+    user_id: UUID,
+    task_manager: TaskManager = Depends(Provide[Container.task_manager]),
+) -> StandardResponse[List[TaskResource]]:
+    tasks = task_manager.get_tasks(user_id)
+    return StandardResponse[List[TaskResource]](
+        data=[TaskResource(**task.model_dump()) for task in tasks]
+    )
+
+
+@router.get(
     "/{task_id}",
     response_model=StandardResponse[TaskResource],
     status_code=status.HTTP_200_OK,
@@ -39,7 +55,7 @@ def get_task(
     task_id: UUID,
     user_id: UUID,
     task_manager: TaskManager = Depends(Provide[Container.task_manager]),
-) -> Any:
+) -> StandardResponse[TaskResource]:
     task = task_manager.get_task(task_id, user_id)
     if task is None:
         raise HTTPException(
