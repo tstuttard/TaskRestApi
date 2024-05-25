@@ -216,3 +216,31 @@ def test_update_task_not_found(
         "detail": {"key": "task_not_found", "message": "task not found"}
     }
     assert update_tasks_response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_delete_task(client: TestClient, task_manager: TaskManager, user_id_1: UUID):
+    task = task_manager.create_task(CreateTask(name="Dishes", user_id=user_id_1))
+
+    delete_tasks_response = client.delete(
+        f"/tasks/{task.id}",
+        params=QueryParams(user_id=user_id_1),
+    )
+
+    assert delete_tasks_response.status_code == status.HTTP_204_NO_CONTENT
+    assert delete_tasks_response.content == b""
+
+
+def test_delete_task_not_found(
+    client: TestClient, task_manager: TaskManager, user_id_1: UUID, user_id_2
+) -> None:
+    task = task_manager.create_task(CreateTask(name="Dishes", user_id=user_id_1))
+
+    delete_task_response = client.delete(
+        f"/tasks/{task.id}",
+        params=QueryParams(user_id=user_id_2),
+    )
+    delete_task_payload = delete_task_response.json()
+    assert delete_task_payload == {
+        "detail": {"key": "task_not_found", "message": "task not found"}
+    }
+    assert delete_task_response.status_code == status.HTTP_404_NOT_FOUND

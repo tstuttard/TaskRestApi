@@ -106,3 +106,23 @@ def update_task(
             detail={"key": "task_not_found", "message": "task not found"},
         )
     return StandardResponse[TaskResource](data=task.model_dump())
+
+
+@router.delete(
+    "/{task_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+@inject
+def update_task(
+    task_id: UUID,
+    user_id: UUID,
+    task_manager: TaskManager = Depends(Provide[Container.task_manager]),
+) -> None:
+
+    task = task_manager.delete_task(task_id, user_id)
+
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"key": "task_not_found", "message": "task not found"},
+        )

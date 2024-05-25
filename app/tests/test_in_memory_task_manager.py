@@ -142,3 +142,43 @@ def test_update_task_returns_none(
         )
         is None
     )
+
+
+def test_delete_task(
+    in_memory_task_manager: InMemoryTaskManager, user_id_1: UUID, user_id_2: UUID
+) -> None:
+
+    task_to_be_deleted = in_memory_task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1)
+    )
+
+    deleted_task = in_memory_task_manager.delete_task(
+        task_to_be_deleted.id,
+        user_id_1,
+    )
+
+    assert deleted_task == task_to_be_deleted
+    assert in_memory_task_manager.get_task(task_to_be_deleted.id, user_id_1) is None
+
+
+def test_delete_task_returns_none(
+    in_memory_task_manager: InMemoryTaskManager, user_id_1: UUID, user_id_2: UUID
+) -> None:
+    user_id_3 = uuid4()
+
+    created_task_1 = in_memory_task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1)
+    )
+    created_task_2 = in_memory_task_manager.create_task(
+        CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DOING)
+    )
+
+    assert (
+        in_memory_task_manager.delete_task(created_task_1.id, user_id=user_id_3) is None
+    )
+    assert (
+        in_memory_task_manager.delete_task(created_task_1.id, user_id=user_id_2) is None
+    )
+    assert (
+        in_memory_task_manager.get_task(created_task_1.id, user_id_1) == created_task_1
+    )

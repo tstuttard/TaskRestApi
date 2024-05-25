@@ -60,6 +60,10 @@ class TaskManager(metaclass=abc.ABCMeta):
     def update_task(self, update_task: UpdateTask, user_id: UUID) -> Optional[Task]:
         pass
 
+    @abc.abstractmethod
+    def delete_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
+        pass
+
 
 class InMemoryTaskManager(TaskManager):
     tasks: Dict[UUID, Dict[UUID, Task]]
@@ -109,3 +113,14 @@ class InMemoryTaskManager(TaskManager):
         user_tasks.update({update_task.id: updated_task})
 
         return updated_task
+
+    def delete_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
+        user_tasks = self.tasks.get(user_id)
+        if user_tasks is None:
+            return None
+        if task_id not in user_tasks:
+            return None
+
+        task_to_be_deleted = user_tasks.pop(task_id, None)
+
+        return task_to_be_deleted

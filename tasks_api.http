@@ -3,7 +3,7 @@
 @user_id_1 = "c2daaf1e-b373-49e2-94f3-1a55ff80b0d1"
 @user_id_2 = "a6883ad9-794e-4ba9-903a-eed539b84677"
 
-# Create Task
+### Create Task
 POST http://127.0.0.1:8000/tasks?user_id={{user_id_1}}
 Accept: application/json
 
@@ -18,33 +18,30 @@ console.log(response.body.data.id)
 client.global.set("task_id", response.body.data.id);
 %}
 
-###
-# Get Task
+### Get Task
+
 GET http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_1}}
 Accept: application/json
 
-###
-# Get Task of a Different User
+### Get Task of a Different User
+
 GET http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_2}}
 Accept: application/json
 
-###
+### Get Tasks
 
-# Get Tasks
 GET http://127.0.0.1:8000/tasks/?user_id={{user_id_1}}
 
 Accept: application/json
 
-###
+### Get Tasks of a Different User
 
-# Get Tasks of a Different User
 GET http://127.0.0.1:8000/tasks/?user_id={{user_id_2}}
 
 Accept: application/json
 
-###
+### Update Task
 
-# Update Task
 PUT http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_1}}
 Accept: application/json
 
@@ -56,3 +53,14 @@ Accept: application/json
   "labels": [],
   "sub_tasks": []
 }
+
+### Delete Task of a Different User
+
+DELETE http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_1}}
+Accept: application/json
+
+### Delete Task of a Different User
+
+DELETE http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_2}}
+Accept: application/json
+
