@@ -56,9 +56,17 @@ Bonus items:
   - filtering
   - pagination
 - update task endpoint
+  - ~~PUT replace of tasks~~
+  - PATCH partial update
 - delete task endpoint
 - database setup
 - restore task endpoint
+
+## Icebox
+
+Things I want to get back to, time permitting. Putting them on ice.
+
+How should the user_id be passed into the TaskManager? Should it be its own parameter or as part of CreateTask, UpdateTask... ?
 
 ## Trade Offs & Assumptions
 
@@ -67,6 +75,12 @@ I will also assume no user knows another users user_id.
 I have chosen a query parameter so that swagger ui is easy to use. You can't edit request headers easily without editing the request headers manually via the web console or browser extension. 
 I don't want to spend time configuring authentication properly using one of many authentication mechanisms.
 
+TODO: add assumption about number of sub tasks
+TODO: add trade off about returning None from TaskManager instead of raising an Exception or returning Errors
+TODO: tradeoff for not implementing partial update (PATCH), and how all sub tasks will need to be passed in request body with PUT.
+TODO: add external documentation links to tradeoffs and assumptions
+TODO: test code duplication
+TODO: add note about how fast the in memory tests are
 
 ## Retrospective
 
@@ -75,3 +89,7 @@ I don't want to spend time configuring authentication properly using one of many
 It would have made filtering and pagination easier to implement in memory. 
 It would have forced me to think about the database structure earlier, which I would prefer to delay until the whole api is fleshed out.
 Databases require configuration and setup, and I would prefer to delay making decisions about that until later.
+
+### How come I have used pydantic's BaseModel.model_dump() everywhere? 
+
+This exercise has shown gaps in my knowledge of how to use pydantic efficiently. Something I will work on in the future.
