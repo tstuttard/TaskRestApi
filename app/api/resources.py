@@ -24,7 +24,7 @@ class CreateTaskRequestBody(BaseModel):
 
 
 class UpdateTaskRequestBody(BaseModel):
-    id: Optional[UUID]
+    id: Optional[UUID] = None
     name: str
     status: TaskStatus
     labels: List[str]

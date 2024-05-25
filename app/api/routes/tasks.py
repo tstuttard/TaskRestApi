@@ -83,7 +83,10 @@ def update_task(
     task_manager: TaskManager = Depends(Provide[Container.task_manager]),
 ) -> StandardResponse[TaskResource]:
 
-    if task_id != update_task_request_body.id:
+    if (
+        task_id != update_task_request_body.id
+        and update_task_request_body.id is not None
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
@@ -93,7 +96,8 @@ def update_task(
         )
 
     task = task_manager.update_task(
-        UpdateTask(**update_task_request_body.model_dump()), user_id
+        UpdateTask(**{**update_task_request_body.model_dump(), "id": task_id}),
+        user_id,
     )
 
     if task is None:

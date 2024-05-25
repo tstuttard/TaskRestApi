@@ -140,6 +140,31 @@ def test_update_task(client: TestClient, task_manager: TaskManager, user_id_1: U
     assert update_tasks_response.status_code == status.HTTP_200_OK
 
 
+def test_update_task_with_no_task_id(
+    client: TestClient, task_manager: TaskManager, user_id_1: UUID
+):
+    task = task_manager.create_task(CreateTask(name="Dishes", user_id=user_id_1))
+
+    update_task_request_body = {
+        "name": "Wash & Dry Dishes",
+        "status": "Done",
+        "due_date": None,
+        "labels": [],
+        "sub_tasks": [],
+    }
+    update_tasks_response = client.put(
+        f"/tasks/{task.id}",
+        params=QueryParams(user_id=user_id_1),
+        json=update_task_request_body,
+    )
+    update_task_payload = update_tasks_response.json()
+    assert update_task_payload == {
+        "data": {"id": str(task.id), **update_task_request_body}
+    }
+
+    assert update_tasks_response.status_code == status.HTTP_200_OK
+
+
 def test_update_task_id_mismatch(
     client: TestClient, task_manager: TaskManager, user_id_1: UUID
 ) -> None:
