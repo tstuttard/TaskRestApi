@@ -52,10 +52,13 @@ Bonus items:
 - model design
 - migrations
 - get tasks endpoint
+  - ~~initial implementation~~
+  - filtering
+  - pagination
 - update task endpoint
 - delete task endpoint
+- database setup
 - restore task endpoint
-- database set
 
 ## Trade Offs & Assumptions
 
@@ -63,3 +66,12 @@ I am not going to implement proper authentication. I will assume that user manag
 I will also assume no user knows another users user_id.
 I have chosen a query parameter so that swagger ui is easy to use. You can't edit request headers easily without editing the request headers manually via the web console or browser extension. 
 I don't want to spend time configuring authentication properly using one of many authentication mechanisms.
+
+
+## Retrospective
+
+### Could I have used sqlite inmemory database instead of writing my own custom inmemory database using dictionaries and keys? 
+
+It would have made filtering and pagination easier to implement in memory. 
+It would have forced me to think about the database structure earlier, which I would prefer to delay until the whole api is fleshed out.
+Databases require configuration and setup, and I would prefer to delay making decisions about that until later.
