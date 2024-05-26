@@ -60,7 +60,7 @@ def test_get_tasks(task_manager: TaskManager, user_id_1: UUID, user_id_2: UUID) 
     created_task_2 = task_manager.create_task(
         CreateTask(name="Wash Clothes", user_id=user_id_1, status=TaskStatus.DOING)
     )
-    created_task_3 = task_manager.create_task(
+    task_manager.create_task(
         CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DONE)
     )
 
@@ -77,7 +77,7 @@ def test_get_task_returns_none(
     created_task_1 = task_manager.create_task(
         CreateTask(name="Dishes", user_id=user_id_1)
     )
-    created_task_2 = task_manager.create_task(
+    task_manager.create_task(
         CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DOING)
     )
 
@@ -117,7 +117,7 @@ def test_update_task_returns_none(
     created_task_1 = task_manager.create_task(
         CreateTask(name="Dishes", user_id=user_id_1)
     )
-    created_task_2 = task_manager.create_task(
+    task_manager.create_task(
         CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DOING)
     )
 
@@ -176,7 +176,7 @@ def test_delete_task_returns_none(
     created_task_1 = task_manager.create_task(
         CreateTask(name="Dishes", user_id=user_id_1)
     )
-    created_task_2 = task_manager.create_task(
+    task_manager.create_task(
         CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DOING)
     )
 
@@ -196,9 +196,7 @@ def test_get_last_history_entry_returns_none(
     created_task_2 = task_manager.create_task(
         CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DOING)
     )
-    created_task_3 = task_manager.create_task(
-        CreateTask(name="Cook", user_id=user_id_1)
-    )
+    task_manager.create_task(CreateTask(name="Cook", user_id=user_id_1))
     task_manager.delete_task(created_task_1.id, user_id=user_id_1)
     task_manager.delete_task(created_task_2.id, user_id=user_id_2)
 

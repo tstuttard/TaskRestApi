@@ -5,7 +5,7 @@ from contextlib import AbstractContextManager
 from typing import Callable, cast, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import ColumnElement, delete, insert, select, update
 from sqlalchemy.orm import Session
 
 from app.entities import HistoryEntity, TaskEntity
@@ -59,8 +59,8 @@ class InMemoryTaskManager(TaskManager):
 
     def __init__(
         self,
-        tasks: Dict[UUID, Task] = None,
-        history: Dict[UUID, Dict[UUID, List[HistoryEntry]]] = None,
+        tasks: Optional[Dict[UUID, Dict[UUID, Task]]] = None,
+        history: Optional[Dict[UUID, Dict[UUID, List[HistoryEntry]]]] = None,
     ):
         if tasks is None:
             tasks = {}
@@ -79,17 +79,19 @@ class InMemoryTaskManager(TaskManager):
             sub_tasks=create_task.sub_tasks,
             user_id=create_task.user_id,
         )
-        if task.user_id not in self.tasks:
+        user_tasks = self.tasks.get(task.user_id, None)
+        if user_tasks is None:
             self.tasks.update({task.user_id: {task.id: task}})
         else:
-            self.tasks.get(task.user_id).update({task.id: task})
+            user_tasks.update({task.id: task})
 
         return task
 
     def get_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
-        if user_id not in self.tasks:
+        user_tasks = self.tasks.get(user_id, None)
+        if user_tasks is None:
             return None
-        return self.tasks.get(user_id).get(task_id, None)
+        return user_tasks.get(task_id, None)
 
     def get_tasks(self, user_id: UUID) -> List[Task]:
         user_tasks = self.tasks.get(user_id)
@@ -117,7 +119,7 @@ class InMemoryTaskManager(TaskManager):
         if task_id not in user_tasks:
             return None
 
-        deleted_task = user_tasks.pop(task_id, None)
+        deleted_task = user_tasks.pop(task_id)
 
         history_entry = HistoryEntry(
             id=uuid4(),
@@ -128,10 +130,12 @@ class InMemoryTaskManager(TaskManager):
             created_at=datetime.datetime.now(),
         )
 
-        if user_id not in self.history or task_id not in self.history.get(user_id):
+        user_history = self.history.get(user_id, None)
+        if user_history is None or task_id not in user_history:
             self.history.update({user_id: {task_id: [history_entry]}})
         else:
-            self.history.get(user_id).get(task_id).append(history_entry)
+            task_history = user_history.get(task_id, [])
+            task_history.append(history_entry)
 
         return deleted_task
 
@@ -144,9 +148,8 @@ class InMemoryTaskManager(TaskManager):
         if task_id not in user_history:
             return None
 
-        return sorted(
-            user_history.get(task_id), key=lambda entry: entry.created_at, reverse=True
-        )[0]
+        task_history = user_history.get(task_id, [])
+        return sorted(task_history, key=lambda entry: entry.created_at, reverse=True)[0]
 
     def restore_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
         if self.get_task(task_id, user_id) is not None:
@@ -162,7 +165,9 @@ class InMemoryTaskManager(TaskManager):
         if deleted_task.user_id not in self.tasks:
             self.tasks.update({deleted_task.user_id: {deleted_task.id: deleted_task}})
         else:
-            self.tasks.get(deleted_task.user_id).update({deleted_task.id: deleted_task})
+            self.tasks.get(deleted_task.user_id, {}).update(
+                {deleted_task.id: deleted_task}
+            )
 
         return deleted_task
 
@@ -215,8 +220,8 @@ class SqliteTaskManager(TaskManager):
     def get_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
         with self.session_factory() as session:
             statement = select(TaskEntity).where(
-                cast("ColumnElement[bool]", TaskEntity.id == task_id),
-                cast("ColumnElement[bool]", TaskEntity.user_id == user_id),
+                cast(ColumnElement[bool], TaskEntity.id == task_id),
+                cast(ColumnElement[bool], TaskEntity.user_id == user_id),
             )
             result = session.execute(statement)
             task_entity = result.scalars().first()
@@ -238,7 +243,7 @@ class SqliteTaskManager(TaskManager):
     def get_tasks(self, user_id: UUID) -> List[Task]:
         with self.session_factory() as session:
             statement = select(TaskEntity).where(
-                cast("ColumnElement[bool]", TaskEntity.user_id == user_id),
+                cast(ColumnElement[bool], TaskEntity.user_id == user_id),
             )
             result = session.execute(statement)
             task_entities = result.scalars().all()
@@ -267,8 +272,8 @@ class SqliteTaskManager(TaskManager):
             statement = (
                 update(TaskEntity)
                 .where(
-                    cast("ColumnElement[bool]", TaskEntity.id == update_task.id),
-                    cast("ColumnElement[bool]", TaskEntity.user_id == user_id),
+                    cast(ColumnElement[bool], TaskEntity.id == update_task.id),
+                    cast(ColumnElement[bool], TaskEntity.user_id == user_id),
                 )
                 .values(
                     name=update_task.name,
@@ -292,8 +297,8 @@ class SqliteTaskManager(TaskManager):
 
         with self.session_factory() as session:
             statement = delete(TaskEntity).where(
-                cast("ColumnElement[bool]", TaskEntity.id == task_to_delete.id),
-                cast("ColumnElement[bool]", TaskEntity.user_id == user_id),
+                cast(ColumnElement[bool], TaskEntity.id == task_to_delete.id),
+                cast(ColumnElement[bool], TaskEntity.user_id == user_id),
             )
 
             result = session.execute(statement)
@@ -325,9 +330,9 @@ class SqliteTaskManager(TaskManager):
             statement = (
                 select(HistoryEntity)
                 .where(
-                    cast("ColumnElement[bool]", HistoryEntity.entity_id == task_id),
+                    cast(ColumnElement[bool], HistoryEntity.entity_id == task_id),
                     cast(
-                        "ColumnElement[bool]",
+                        ColumnElement[bool],
                         HistoryEntity.type == HistoryEntryType.TASK_DELETED,
                     ),
                 )

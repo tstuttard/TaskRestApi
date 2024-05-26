@@ -31,7 +31,9 @@ def create_task(
     created_task = task_manager.create_task(
         CreateTask(**create_task_request_body.model_dump(), user_id=user_id)
     )
-    response = StandardResponse[TaskResource](data=created_task.model_dump())
+    response = StandardResponse[TaskResource](
+        data=TaskResource(**created_task.model_dump())
+    )
     return response
 
 
@@ -68,7 +70,7 @@ def get_task(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"key": "task_not_found", "message": "task not found"},
         )
-    return StandardResponse[TaskResource](data=task.model_dump())
+    return StandardResponse[TaskResource](data=TaskResource(**task.model_dump()))
 
 
 @router.put(
@@ -106,7 +108,7 @@ def update_task(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"key": "task_not_found", "message": "task not found"},
         )
-    return StandardResponse[TaskResource](data=task.model_dump())
+    return StandardResponse[TaskResource](data=TaskResource(**task.model_dump()))
 
 
 @router.delete(
@@ -114,7 +116,7 @@ def update_task(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 @inject
-def update_task(
+def delete_task(
     task_id: UUID,
     user_id: UUID,
     task_manager: TaskManager = Depends(Provide[Container.task_manager]),
@@ -149,4 +151,4 @@ def restore_task(
             detail={"key": "task_not_found", "message": "task not found"},
         )
 
-    return StandardResponse[TaskResource](data=task.model_dump())
+    return StandardResponse[TaskResource](data=TaskResource(**task.model_dump()))

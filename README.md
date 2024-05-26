@@ -50,7 +50,7 @@ Bonus items:
     - common error format
   - edge cases
 - ~~model design~~
-- migrations
+- ~~migrations~~
 - get tasks endpoint
   - ~~initial implementation~~
   - filtering
@@ -62,7 +62,7 @@ Bonus items:
 - ~~database setup~~
 - ~~history table migration~~
 - ~~add method to Taskmanager to retrieve a deleted task history entry~~
-- restore task endpoint
+- ~~restore task endpoint~~
 - documentation on how to setup the project
 
 ## Icebox

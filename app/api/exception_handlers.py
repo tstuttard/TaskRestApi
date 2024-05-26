@@ -1,6 +1,6 @@
-from fastapi import HTTPException, Request, status
+from fastapi import Request, status
 from fastapi.responses import JSONResponse
-from domain.errors import TaskAlreadyExists
+from app.domain.errors import TaskAlreadyExists
 
 
 def task_already_exists_exception_handler(
