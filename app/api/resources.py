@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.domain.task_managers import TaskStatus
+from app.domain.models import TaskStatus
 
 M = TypeVar("M", bound=BaseModel)
 

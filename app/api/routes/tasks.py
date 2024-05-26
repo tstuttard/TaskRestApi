@@ -11,7 +11,8 @@ from app.api.resources import (
     UpdateTaskRequestBody,
 )
 from app.containers import Container
-from app.domain.task_managers import CreateTask, TaskManager, UpdateTask
+from app.domain.task_managers import TaskManager
+from app.domain.models import CreateTask, UpdateTask
 
 router = APIRouter()
 

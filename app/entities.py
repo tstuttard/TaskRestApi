@@ -3,7 +3,7 @@ from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from domain.models import TaskStatus
+from app.domain.models import TaskStatus
 
 
 class Base(DeclarativeBase):

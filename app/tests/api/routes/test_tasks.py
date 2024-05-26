@@ -4,8 +4,8 @@ import pytest
 from httpx import QueryParams
 from starlette.testclient import TestClient
 from fastapi import status, FastAPI
-from app.main import create_app
-from app.domain.task_managers import CreateTask, TaskManager
+from app.domain.task_managers import TaskManager
+from app.domain.models import CreateTask
 from tests.conftest import user_id_1
 
 

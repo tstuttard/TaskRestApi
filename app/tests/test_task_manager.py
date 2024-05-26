@@ -3,15 +3,12 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.domain.task_managers import (
-    CreateTask,
     HistoryEntry,
     HistoryEntryType,
     HistoryEntryVersion,
-    Task,
     TaskManager,
-    TaskStatus,
-    UpdateTask,
 )
+from app.domain.models import CreateTask, Task, UpdateTask, TaskStatus
 
 
 def test_create_task(task_manager: TaskManager, user_id_1: UUID) -> None:

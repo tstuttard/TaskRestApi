@@ -1,6 +1,5 @@
 import abc
 from contextlib import AbstractContextManager
-from datetime import date
 from enum import Enum
 from typing import Any, Callable, cast, Dict, List, Optional
 from uuid import UUID, uuid4
@@ -10,35 +9,7 @@ from sqlalchemy import delete, insert, select, update
 from sqlalchemy.orm import Session
 
 from app.entities import TaskEntity
-from domain.models import TaskStatus
-
-
-class CreateTask(BaseModel):
-    name: str
-    status: TaskStatus = TaskStatus.PENDING
-    labels: List[str] = []
-    due_date: Optional[date] = None
-    sub_tasks: List = []
-    user_id: UUID
-
-
-class UpdateTask(BaseModel):
-    id: UUID
-    name: str
-    status: TaskStatus
-    labels: List[str]
-    due_date: Optional[date]
-    sub_tasks: List
-
-
-class Task(BaseModel):
-    id: UUID
-    name: str
-    status: TaskStatus = TaskStatus.PENDING
-    labels: List[str] = []
-    due_date: Optional[date] = None
-    sub_tasks: List = []
-    user_id: UUID
+from app.domain.models import CreateTask, Task, UpdateTask
 
 
 class TaskManager(metaclass=abc.ABCMeta):
