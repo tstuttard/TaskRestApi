@@ -49,7 +49,7 @@ Bonus items:
   - response structure
     - common error format
   - edge cases
-- model design
+- ~~model design~~
 - migrations
 - get tasks endpoint
   - ~~initial implementation~~
@@ -58,9 +58,12 @@ Bonus items:
 - update task endpoint
   - ~~PUT replace of tasks~~
   - PATCH partial update
-- delete task endpoint
-- database setup
+- ~~delete task endpoint~~
+- ~~database setup~~
+- ~~history table migration~~
+- ~~add method to Taskmanager to retrieve a deleted task history entry~~
 - restore task endpoint
+- documentation on how to setup the project
 
 ## Icebox
 
@@ -93,3 +96,9 @@ Databases require configuration and setup, and I would prefer to delay making de
 ### How come I have used pydantic's BaseModel.model_dump() everywhere? 
 
 This exercise has shown gaps in my knowledge of how to use pydantic efficiently. Something I will work on in the future.
+
+### How come I didn't setup linting/mypy from the start?
+
+I wanted to get started and implement the api endpoints first. I haven't setup linting in a while and did not want to spend long at the start setting up and debugging it.
+
+
