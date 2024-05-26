@@ -43,11 +43,49 @@ There were 2 things I wanted to show off in this tech exercise.
 I enjoyed the separations of concerns between the api, domain and database. I thought having one set of tests that you could run against InMemoryTaskManager and SqliteTaskManager was really powerful.
 The in_memory tests take ~70ms whereas the sqlite ones take ~700ms. Not a massive difference, but as the test suite grows, and you integrate with more services, it will pay dividends. Especially for having a good feedback loop when developing.
 
+The technologies I am using are FastAPI, pydantic, dependency-injector, SQLAlchemy 2.0, alembic and pytest with black, and ruff for formatting. I manually run mypy for linting, but it is not enforced.
+
 If you have any questions, thoughts, or want to discuss the task further, please do reach via email, or phone me.
 
 ## Setup
 
-## Trade Offs & Assumptions
+```shell
+git clone git@github.com:tstuttard/TaskRestApi.git
+cd TaskRestApi
+# Make sure you have python 3.9 or 3.10 installed
+poetry shell
+poetry install
+
+# create database and run migrations (uses a sqlite database by default)
+alembic upgrade head
+
+# run the app, again uses a sqlite database by default
+python -m uvicorn app.main:app
+
+# if you want to use the in memory database run the following instead
+export TASK_MANAGER_TYPE=in_memory;python -m uvicorn app.main:app 
+```
+
+This should setup up the project and spin up the FastAPI application.
+The sqlite database is stored at `./app/task.db`
+
+Browse to `127.0.0.1:8000/docs` to play about with the API. Note that you have to pass `user_id` as a query parameter with any request, and it must be a valid UUID. 
+
+For example `POST 127.0.0.1/tasks?user_id=50fd38cc-6dc3-4202-b3aa-0eeee458184a` 
+
+See Trade-Offs & Assumptions below, for why. 
+
+To run the tests:
+
+```shell
+# run pytest using sqlite database
+export TASK_MANAGER_TYPE=sqlite;pytest
+
+# run pytest using in_memory database
+export TASK_MANAGER_TYPE=in_memory;pytest 
+```
+
+## Trade-Offs & Assumptions
 
 I am not going to implement proper authentication. I will assume that user management and authentication is handled by a middleware or api gateway or authentication service, and will use a query parameter to set the user_id.
 I will also assume no user knows another users user_id.
