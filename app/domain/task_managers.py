@@ -1,17 +1,16 @@
 import abc
+from contextlib import AbstractContextManager
 from datetime import date
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, cast, Dict, List, Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
+from sqlalchemy import delete, insert, select, update
+from sqlalchemy.orm import Session
 
-
-class TaskStatus(Enum):
-    PENDING = "Pending"
-    DOING = "Doing"
-    BLOCKED = "Blocked"
-    DONE = "Done"
+from app.entities import TaskEntity
+from domain.models import TaskStatus
 
 
 class CreateTask(BaseModel):
@@ -45,11 +44,11 @@ class Task(BaseModel):
 class TaskManager(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def create_task(self, create_task: CreateTask) -> Task:
+    def create_task(self, create_task: CreateTask) -> Optional[Task]:
         pass
 
     @abc.abstractmethod
-    def get_task(self, task_id: UUID, user_id: UUID) -> Task:
+    def get_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
         pass
 
     @abc.abstractmethod
@@ -94,7 +93,7 @@ class InMemoryTaskManager(TaskManager):
         self.tasks = tasks
         self.history = history
 
-    def create_task(self, create_task: CreateTask) -> Task:
+    def create_task(self, create_task: CreateTask) -> Optional[Task]:
         task = Task(
             id=uuid4(),
             name=create_task.name,
@@ -157,17 +156,136 @@ class InMemoryTaskManager(TaskManager):
 
 
 class SqliteTaskManager(TaskManager):
-    def create_task(self, create_task: CreateTask) -> Task:
-        pass
 
-    def get_task(self, task_id: UUID, user_id: UUID) -> Task:
-        pass
+    def __init__(
+        self, session_factory: Callable[..., AbstractContextManager[Session]]
+    ) -> None:
+        self.session_factory = session_factory
+
+    def create_task(self, create_task: CreateTask) -> Optional[Task]:
+        with self.session_factory() as session:
+            task_entity = TaskEntity(
+                id=uuid4(),
+                name=create_task.name,
+                status=create_task.status,
+                # labels=create_task.labels,
+                due_date=create_task.due_date,
+                # sub_tasks=create_task.sub_tasks,
+                user_id=create_task.user_id,
+            )
+            statement = insert(TaskEntity).values(
+                id=task_entity.id,
+                name=task_entity.name,
+                status=task_entity.status,
+                # labels=task_entity.labels,
+                due_date=task_entity.due_date,
+                # sub_tasks=task_entity.sub_tasks,
+                user_id=task_entity.user_id,
+            )
+            result = session.execute(statement)
+            session.commit()
+
+            if result.rowcount == 0:
+                return None
+
+            task = Task(
+                id=task_entity.id,
+                name=task_entity.name,
+                status=task_entity.status,
+                labels=[],
+                due_date=task_entity.due_date,
+                sub_tasks=[],
+                user_id=task_entity.user_id,
+            )
+
+            return task
+
+    def get_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
+        with self.session_factory() as session:
+            statement = select(TaskEntity).where(
+                cast("ColumnElement[bool]", TaskEntity.id == task_id),
+                cast("ColumnElement[bool]", TaskEntity.user_id == user_id),
+            )
+            result = session.execute(statement)
+            task_entity = result.scalars().first()
+            if task_entity is None:
+                return None
+
+            task = Task(
+                id=task_entity.id,
+                name=task_entity.name,
+                status=task_entity.status,
+                labels=[],
+                due_date=task_entity.due_date,
+                sub_tasks=[],
+                user_id=task_entity.user_id,
+            )
+
+            return task
 
     def get_tasks(self, user_id: UUID) -> List[Task]:
-        pass
+        with self.session_factory() as session:
+            statement = select(TaskEntity).where(
+                cast("ColumnElement[bool]", TaskEntity.user_id == user_id),
+            )
+            result = session.execute(statement)
+            task_entities = result.scalars().all()
+
+            tasks = []
+            for task_entity in task_entities:
+                task = Task(
+                    id=task_entity.id,
+                    name=task_entity.name,
+                    status=task_entity.status,
+                    labels=[],
+                    due_date=task_entity.due_date,
+                    sub_tasks=[],
+                    user_id=task_entity.user_id,
+                )
+                tasks.append(task)
+
+            return tasks
 
     def update_task(self, update_task: UpdateTask, user_id: UUID) -> Optional[Task]:
-        pass
+        task_to_update = self.get_task(update_task.id, user_id)
+        if task_to_update is None:
+            return None
+
+        with self.session_factory() as session:
+            statement = (
+                update(TaskEntity)
+                .where(
+                    cast("ColumnElement[bool]", TaskEntity.id == update_task.id),
+                    cast("ColumnElement[bool]", TaskEntity.user_id == user_id),
+                )
+                .values(
+                    name=update_task.name,
+                    status=update_task.status,
+                    # labels=update_task.labels,
+                    due_date=update_task.due_date,
+                    # sub_tasks=update_task.sub_tasks,
+                )
+            )
+            result = session.execute(statement)
+            if result.rowcount == 0:
+                return None
+            session.commit()
+
+            return self.get_task(update_task.id, user_id)
 
     def delete_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
-        pass
+        task_to_delete = self.get_task(task_id, user_id)
+        if task_to_delete is None:
+            return None
+
+        with self.session_factory() as session:
+            statement = delete(TaskEntity).where(
+                cast("ColumnElement[bool]", TaskEntity.id == task_to_delete.id),
+                cast("ColumnElement[bool]", TaskEntity.user_id == user_id),
+            )
+
+            result = session.execute(statement)
+            if result.rowcount == 0:
+                return None
+            session.commit()
+            return task_to_delete

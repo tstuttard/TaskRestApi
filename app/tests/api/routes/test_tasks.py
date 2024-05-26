@@ -10,19 +10,6 @@ from tests.conftest import user_id_1
 
 
 @pytest.fixture
-def app() -> FastAPI:
-    app = create_app()
-    yield app
-    # TODO figure out how to type hint container
-    app.container.unwire()
-
-
-@pytest.fixture
-def task_manager(app: FastAPI) -> TaskManager:
-    return app.container.task_manager()
-
-
-@pytest.fixture
 def client(app: FastAPI) -> TestClient:
     yield TestClient(app)
 

@@ -3,14 +3,14 @@ from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.domain.task_managers import TaskStatus
+from domain.models import TaskStatus
 
 
 class Base(DeclarativeBase):
     pass
 
 
-class Task(Base):
+class TaskEntity(Base):
     __tablename__ = "task"
     id: Mapped[UUID] = mapped_column(primary_key=True)
     name: Mapped[str]
