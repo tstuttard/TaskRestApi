@@ -1,14 +1,18 @@
 import json
 from uuid import UUID, uuid4
-import pytest
 
 from app.domain.task_managers import (
+    TaskManager,
+)
+from app.domain.models import (
+    CreateTask,
+    Task,
+    UpdateTask,
+    TaskStatus,
     HistoryEntry,
     HistoryEntryType,
     HistoryEntryVersion,
-    TaskManager,
 )
-from app.domain.models import CreateTask, Task, UpdateTask, TaskStatus
 
 
 def test_create_task(task_manager: TaskManager, user_id_1: UUID) -> None:
@@ -128,9 +132,6 @@ def test_update_task_returns_none(
     )
 
 
-@pytest.mark.skip(
-    reason="Skipping this temporarily so that InMemoryTaskManager can be refactored to in a separate commit"
-)
 def test_delete_task(
     task_manager: TaskManager, user_id_1: UUID, user_id_2: UUID
 ) -> None:
@@ -146,13 +147,16 @@ def test_delete_task(
 
     assert deleted_task == task_to_be_deleted
     assert task_manager.get_task(task_to_be_deleted.id, user_id_1) is None
-    task_deleted = task_manager.history.pop()
+
+    task_deleted = task_manager.get_last_history_entry(task_to_be_deleted.id, user_id_1)
 
     assert task_deleted == HistoryEntry(
         id=task_deleted.id,
+        entity_id=task_to_be_deleted.id,
         type=HistoryEntryType.TASK_DELETED,
         version=HistoryEntryVersion.TASK,
         event=deleted_task.model_dump_json(),
+        created_at=task_deleted.created_at,
     )
 
     task_deleted_event = json.loads(task_deleted.model_dump().get("event"))
@@ -176,3 +180,39 @@ def test_delete_task_returns_none(
     assert task_manager.delete_task(created_task_1.id, user_id=user_id_3) is None
     assert task_manager.delete_task(created_task_1.id, user_id=user_id_2) is None
     assert task_manager.get_task(created_task_1.id, user_id_1) == created_task_1
+
+
+def test_get_last_history_entry_returns_none(
+    task_manager: TaskManager, user_id_1: UUID, user_id_2: UUID
+) -> None:
+    user_id_3 = uuid4()
+
+    created_task_1 = task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1)
+    )
+    created_task_2 = task_manager.create_task(
+        CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DOING)
+    )
+    created_task_3 = task_manager.create_task(
+        CreateTask(name="Cook", user_id=user_id_1)
+    )
+    task_manager.delete_task(created_task_1.id, user_id=user_id_1)
+    task_manager.delete_task(created_task_2.id, user_id=user_id_2)
+
+    assert (
+        task_manager.get_last_history_entry(created_task_1.id, user_id=user_id_3)
+        is None
+    )
+    assert (
+        task_manager.get_last_history_entry(created_task_1.id, user_id=user_id_2)
+        is None
+    )
+    history_entry = task_manager.get_last_history_entry(created_task_1.id, user_id_1)
+    assert history_entry == HistoryEntry(
+        id=history_entry.id,
+        entity_id=created_task_1.id,
+        type=HistoryEntryType.TASK_DELETED,
+        version=HistoryEntryVersion.TASK,
+        event=created_task_1.model_dump_json(),
+        created_at=history_entry.created_at,
+    )

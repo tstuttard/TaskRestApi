@@ -1,15 +1,22 @@
 import abc
+import datetime
+import json
 from contextlib import AbstractContextManager
-from enum import Enum
-from typing import Any, Callable, cast, Dict, List, Optional
+from typing import Callable, cast, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.orm import Session
 
-from app.entities import TaskEntity
-from app.domain.models import CreateTask, Task, UpdateTask
+from app.entities import HistoryEntity, TaskEntity
+from app.domain.models import (
+    CreateTask,
+    Task,
+    UpdateTask,
+    HistoryEntry,
+    HistoryEntryType,
+    HistoryEntryVersion,
+)
 
 
 class TaskManager(metaclass=abc.ABCMeta):
@@ -34,33 +41,26 @@ class TaskManager(metaclass=abc.ABCMeta):
     def delete_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
         pass
 
-
-class HistoryEntryType(Enum):
-    TASK_DELETED = "TASK_DELETED"
-
-
-class HistoryEntryVersion(Enum):
-    TASK = "Task"
-
-
-class HistoryEntry(BaseModel):
-    id: UUID
-    type: HistoryEntryType = (HistoryEntryType.TASK_DELETED,)
-    version: HistoryEntryVersion
-    event: Any
+    @abc.abstractmethod
+    def get_last_history_entry(
+        self, task_id: UUID, user_id: UUID
+    ) -> Optional[HistoryEntry]:
+        pass
 
 
 class InMemoryTaskManager(TaskManager):
     tasks: Dict[UUID, Dict[UUID, Task]]
-    history: List[HistoryEntry] = []
+    history: Dict[UUID, Dict[UUID, List[HistoryEntry]]] = {}
 
     def __init__(
-        self, tasks: Dict[UUID, Task] = None, history: List[HistoryEntry] = None
+        self,
+        tasks: Dict[UUID, Task] = None,
+        history: Dict[UUID, Dict[UUID, List[HistoryEntry]]] = None,
     ):
         if tasks is None:
             tasks = {}
         if history is None:
-            history = []
+            history = {}
         self.tasks = tasks
         self.history = history
 
@@ -114,16 +114,34 @@ class InMemoryTaskManager(TaskManager):
 
         deleted_task = user_tasks.pop(task_id, None)
 
-        self.history.append(
-            HistoryEntry(
-                id=deleted_task.id,
-                type=HistoryEntryType.TASK_DELETED,
-                version=HistoryEntryVersion.TASK,
-                event=deleted_task.model_dump_json(),
-            )
+        history_entry = HistoryEntry(
+            id=uuid4(),
+            entity_id=task_id,
+            type=HistoryEntryType.TASK_DELETED,
+            version=HistoryEntryVersion.TASK,
+            event=deleted_task.model_dump_json(),
+            created_at=datetime.datetime.now(),
         )
 
+        if user_id not in self.history or task_id not in self.history.get(user_id):
+            self.history.update({user_id: {task_id: [history_entry]}})
+        else:
+            self.history.get(user_id).get(task_id).append(history_entry)
+
         return deleted_task
+
+    def get_last_history_entry(
+        self, task_id: UUID, user_id: UUID
+    ) -> Optional[HistoryEntry]:
+        user_history = self.history.get(user_id)
+        if user_history is None:
+            return None
+        if task_id not in user_history:
+            return None
+
+        return sorted(
+            user_history.get(task_id), key=lambda entry: entry.created_at, reverse=True
+        )[0]
 
 
 class SqliteTaskManager(TaskManager):
@@ -258,5 +276,59 @@ class SqliteTaskManager(TaskManager):
             result = session.execute(statement)
             if result.rowcount == 0:
                 return None
+
+            history_insert_statement = insert(HistoryEntity).values(
+                id=uuid4(),
+                entity_id=task_id,
+                type=HistoryEntryType.TASK_DELETED,
+                version=HistoryEntryVersion.TASK,
+                event=task_to_delete.model_dump_json(),
+                created_at=datetime.datetime.now(),
+            )
+            history_insert_result = session.execute(history_insert_statement)
+            if history_insert_result.rowcount == 0:
+                return None
+
             session.commit()
+
             return task_to_delete
+
+    def get_last_history_entry(
+        self, task_id: UUID, user_id: UUID
+    ) -> Optional[HistoryEntry]:
+        if user_id is None:
+            return None
+        with self.session_factory() as session:
+            statement = (
+                select(HistoryEntity)
+                .where(
+                    cast("ColumnElement[bool]", HistoryEntity.entity_id == task_id),
+                    cast(
+                        "ColumnElement[bool]",
+                        HistoryEntity.type == HistoryEntryType.TASK_DELETED,
+                    ),
+                )
+                .order_by(HistoryEntity.created_at.desc())
+            )
+            result = session.execute(statement)
+            history_entity: HistoryEntity = result.scalars().first()
+            if history_entity is None:
+                return None
+
+            history_entry = HistoryEntry(
+                id=history_entity.id,
+                entity_id=history_entity.entity_id,
+                type=history_entity.type,
+                version=history_entity.version,
+                event=history_entity.event,
+                created_at=history_entity.created_at,
+            )
+            # TODO: figure out how to dynamically restore the HistoryEntry.event based on the version
+            task_deleted_event = Task(
+                **json.loads(history_entry.model_dump().get("event"))
+            )
+
+            if task_deleted_event.user_id != user_id:
+                return None
+
+            return history_entry
