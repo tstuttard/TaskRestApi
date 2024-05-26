@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from app.api.main import api_router
 from app.containers import Container
 
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 def create_app() -> FastAPI:
     app = FastAPI()
@@ -16,9 +18,9 @@ def create_app() -> FastAPI:
                 "sqlite": {},
                 "in_memory": {},
             },
-            # TODO Fix unable to open database connection error, and remove hardcoded path
-            #      This won't work if there are files in different directory structures accessing the database
-            "db": {"url": f"sqlite:///../../task.db"},
+            # The amount slashes in the database url are important. For absolute paths, 4 slashes are needed.
+            # APP_DIR has a leading /
+            "db": {"url": f"sqlite:///{APP_DIR}/task.db"},
         }
     )
 
