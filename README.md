@@ -40,8 +40,10 @@ There were 2 things I wanted to show off in this tech exercise.
 1. Speed to mock up and implement the endpoints, which I discussed with Adam and Richard during my first interview. I wanted to try and show how you can create short feedback loops, without having to get bogged down in database setup and integration.
 2. Using dependency injection and inversion of control, to easily swap between implementations of a TaskManager. It took a while to setup, as I hadn't done this from scratch before on my own. Once it was set up it made a big difference in development speed, and switching to using the sqlite database.  
 
-I enjoyed the separations of concerns between the api, domain and database. I thought having one set of tests that you could run against InMemoryTaskManager and SqliteTaskManager was really powerful.
+If you look through the commits, you will see I didn't start working on the SqliteTaskManager until Sunday morning. I was working on the InMemoryTaskManager up until then. I enjoyed the separations of concerns between the api, domain and database. I thought having one set of tests that you could run against InMemoryTaskManager and SqliteTaskManager was really powerful.
 The in_memory tests take ~70ms whereas the sqlite ones take ~700ms. Not a massive difference, but as the test suite grows, and you integrate with more services, it will pay dividends. Especially for having a good feedback loop when developing.
+
+If you want to learn more about the dependency-injector library see their website: https://python-dependency-injector.ets-labs.org/.
 
 The technologies I am using are FastAPI, pydantic, dependency-injector, SQLAlchemy 2.0, alembic and pytest with black, and ruff for formatting. I manually run mypy for linting, but it is not enforced.
 
@@ -99,6 +101,7 @@ I do wonder how that might change if I added filtering.
 
 I didn't get round to adding filtering or pagination. I wanted to show off dependency injection, inversion of control and how simple it makes prototyping and testing.
 This is a nice resource of different types of pagination: https://nordicapis.com/understanding-5-types-of-web-api-pagination/.
+I would have gone with limit/offset for simplicity.
 
 
 I wish I started throwing domain errors like I did for TaskAlreadyExists. Returning None in the TaskManager is the main cause of the mypy errors. Even having a TaskNotFound error, and adding an error handler for that would clean up the code a lot. This should be trivial to add, but I wanted to spend the last hour writing up my thoughts here.
@@ -107,7 +110,7 @@ If I had time, and if I had implemented sub tasks, there would have been a bit o
 
 If I had more time, I would like to have utilised pytest fixtures more, and pytest parameterize. There were some tests that made the same assertions on methods, and changing the input/output with parameterized would have been cleaner.
 
-Lastly I would want to cleanup the directory and file structure. I think it could have been better laid out separating API layer, from the Domain layer, from the Database layer.
+Lastly I would want to cleanup the directory and file structure, and add docstrings explaining a bit more what each file, class and function does. I think it could have been better laid out separating API layer, from the Domain layer, from the Database layer.
 
 
 ## Retrospective
@@ -130,6 +133,8 @@ This exercise has shown gaps in my knowledge of how to use pydantic efficiently.
 
 I wanted to get started and implement the api endpoints first. I haven't setup linting in a while and did not want to spend long at the start setting up and debugging it.
 
+## Resources
+[CLI Application Tutorial using dependency-injector](https://github.com/ets-labs/python-dependency-injector/blob/cc2304e46e054ae08dc12995428759fbfb51af10/docs/tutorials/cli.rst)
 
 
 
