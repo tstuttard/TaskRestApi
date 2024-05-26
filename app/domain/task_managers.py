@@ -2,13 +2,13 @@ import abc
 import datetime
 import json
 from contextlib import AbstractContextManager
-from typing import Callable, cast, Dict, List, Optional
+from typing import Callable, cast, Dict, List, Optional, Set
 from uuid import UUID, uuid4
 
-from sqlalchemy import ColumnElement, delete, insert, select, update
+from sqlalchemy import ColumnElement, delete, insert, select
 from sqlalchemy.orm import Session
 
-from app.entities import HistoryEntity, TaskEntity
+from app.entities import HistoryEntity, LabelEntity, TaskEntity
 from app.domain.models import (
     CreateTask,
     Task,
@@ -172,6 +172,24 @@ class InMemoryTaskManager(TaskManager):
         return deleted_task
 
 
+def create_or_get_labels(labels: Set[str], session: Session) -> Set[LabelEntity]:
+    label_entities = set()
+    for label in labels:
+
+        statement = select(LabelEntity).where(
+            cast(ColumnElement[bool], LabelEntity.name == label)
+        )
+        label_result = session.execute(statement)
+        label_entity = label_result.scalars().first()
+        if label_entity is None:
+            label_entity = LabelEntity(id=uuid4(), name=label)
+            session.add(label_entity)
+
+        label_entities.add(label_entity)
+        session.commit()
+    return label_entities
+
+
 class SqliteTaskManager(TaskManager):
 
     def __init__(
@@ -185,31 +203,24 @@ class SqliteTaskManager(TaskManager):
                 id=uuid4(),
                 name=create_task.name,
                 status=create_task.status,
-                # labels=create_task.labels,
                 due_date=create_task.due_date,
+                labels=set(),
                 # sub_tasks=create_task.sub_tasks,
                 user_id=create_task.user_id,
             )
-            statement = insert(TaskEntity).values(
-                id=task_entity.id,
-                name=task_entity.name,
-                status=task_entity.status,
-                # labels=task_entity.labels,
-                due_date=task_entity.due_date,
-                # sub_tasks=task_entity.sub_tasks,
-                user_id=task_entity.user_id,
-            )
-            result = session.execute(statement)
+            session.add(task_entity)
             session.commit()
 
-            if result.rowcount == 0:
-                return None
+            label_entities = create_or_get_labels(create_task.labels, session)
+
+            task_entity.labels = label_entities
+            session.commit()
 
             task = Task(
                 id=task_entity.id,
                 name=task_entity.name,
                 status=task_entity.status,
-                labels=[],
+                labels=create_task.labels,
                 due_date=task_entity.due_date,
                 sub_tasks=[],
                 user_id=task_entity.user_id,
@@ -232,7 +243,7 @@ class SqliteTaskManager(TaskManager):
                 id=task_entity.id,
                 name=task_entity.name,
                 status=task_entity.status,
-                labels=[],
+                labels={label_entity.name for label_entity in task_entity.labels},
                 due_date=task_entity.due_date,
                 sub_tasks=[],
                 user_id=task_entity.user_id,
@@ -254,7 +265,7 @@ class SqliteTaskManager(TaskManager):
                     id=task_entity.id,
                     name=task_entity.name,
                     status=task_entity.status,
-                    labels=[],
+                    labels={label_entity.name for label_entity in task_entity.labels},
                     due_date=task_entity.due_date,
                     sub_tasks=[],
                     user_id=task_entity.user_id,
@@ -269,23 +280,23 @@ class SqliteTaskManager(TaskManager):
             return None
 
         with self.session_factory() as session:
-            statement = (
-                update(TaskEntity)
-                .where(
-                    cast(ColumnElement[bool], TaskEntity.id == update_task.id),
-                    cast(ColumnElement[bool], TaskEntity.user_id == user_id),
-                )
-                .values(
-                    name=update_task.name,
-                    status=update_task.status,
-                    # labels=update_task.labels,
-                    due_date=update_task.due_date,
-                    # sub_tasks=update_task.sub_tasks,
-                )
+            label_entities = create_or_get_labels(update_task.labels, session)
+
+            statement = select(TaskEntity).where(
+                cast(ColumnElement[bool], TaskEntity.id == update_task.id),
+                cast(ColumnElement[bool], TaskEntity.user_id == user_id),
             )
+
             result = session.execute(statement)
-            if result.rowcount == 0:
+            task_entity = result.scalar()
+            if task_entity is None:
                 return None
+
+            task_entity.labels.clear()
+            task_entity.labels = label_entities
+            task_entity.name = update_task.name
+            task_entity.status = update_task.status
+            task_entity.due_date = update_task.due_date
             session.commit()
 
             return self.get_task(update_task.id, user_id)

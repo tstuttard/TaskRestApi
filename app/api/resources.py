@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, List, Optional, Set, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -18,7 +18,7 @@ class StandardResponse(BaseModel, Generic[M]):
 class CreateTaskRequestBody(BaseModel):
     name: str
     status: TaskStatus = TaskStatus.PENDING
-    labels: List[str] = []
+    labels: Set[str] = set()
     due_date: Optional[date] = None
     sub_tasks: List = []
 
@@ -27,7 +27,7 @@ class UpdateTaskRequestBody(BaseModel):
     id: Optional[UUID] = None
     name: str
     status: TaskStatus
-    labels: List[str]
+    labels: Set[str]
     due_date: Optional[date]
     sub_tasks: List
 
@@ -36,6 +36,6 @@ class TaskResource(BaseModel):
     id: Optional[UUID] = None
     name: str
     status: TaskStatus = TaskStatus.PENDING
-    labels: List[str] = []
+    labels: Set[str] = set()
     due_date: Optional[date] = None
     sub_tasks: List = []

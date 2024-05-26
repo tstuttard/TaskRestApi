@@ -64,6 +64,7 @@ Bonus items:
 - ~~add method to Taskmanager to retrieve a deleted task history entry~~
 - ~~restore task endpoint~~
 - documentation on how to setup the project
+-
 
 ## Icebox
 

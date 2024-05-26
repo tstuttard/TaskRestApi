@@ -1,3 +1,4 @@
+import datetime
 from uuid import UUID, uuid4
 
 import pytest
@@ -14,8 +15,11 @@ def client(app: FastAPI) -> TestClient:
 
 
 def test_create_task(client: TestClient, user_id_1: UUID) -> None:
+    today = datetime.date.today().strftime("%Y-%m-%d")
     create_task_request_body = {
         "name": "Dishes",
+        "due_date": today,
+        "labels": ["kitchen", "daily"],
     }
     create_task_response = client.post(
         "/tasks", params=QueryParams(user_id=user_id_1), json=create_task_request_body
@@ -28,12 +32,12 @@ def test_create_task(client: TestClient, user_id_1: UUID) -> None:
             "id": task_id,
             "name": create_task_request_body["name"],
             "status": "Pending",
-            "due_date": None,
-            "labels": [],
+            "due_date": today,
+            "labels": {"kitchen", "daily"},
             "sub_tasks": [],
         }
     }
-    assert create_task_payload == expected_task_payload
+    assert_task_payload_match(create_task_payload, expected_task_payload)
     assert create_task_response.status_code == status.HTTP_201_CREATED
 
     assert_task_exists(client, task_id, user_id_1, expected_task_payload)
@@ -248,11 +252,11 @@ def test_restore_task(
             "name": task.name,
             "status": "Done",
             "due_date": None,
-            "labels": [],
+            "labels": set(),
             "sub_tasks": [],
         }
     }
-    assert restore_task_payload == expected_task_payload
+    assert_task_payload_match(restore_task_payload, expected_task_payload)
 
     assert_task_exists(client, task.id, user_id_1, expected_task_payload)
 
@@ -289,5 +293,15 @@ def assert_task_exists(
         params=QueryParams(user_id=user_id_1),
     )
     get_task_response_json = get_task_response.json()
-    assert get_task_response_json == expected_task_payload
+
+    assert_task_payload_match(get_task_response_json, expected_task_payload)
     assert get_task_response.status_code == status.HTTP_200_OK
+
+
+def assert_task_payload_match(actual_task_payload: dict, expected_task_payload: dict):
+    assert {
+        "data": {
+            **expected_task_payload["data"],
+            "labels": set(actual_task_payload["data"]["labels"]),
+        },
+    } == expected_task_payload

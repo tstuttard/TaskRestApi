@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Set
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ class Task(BaseModel):
     id: UUID
     name: str
     status: TaskStatus = TaskStatus.PENDING
-    labels: List[str] = []
+    labels: Set[str] = set()
     due_date: Optional[date] = None
     sub_tasks: List = []
     user_id: UUID
@@ -26,7 +26,7 @@ class Task(BaseModel):
 class CreateTask(BaseModel):
     name: str
     status: TaskStatus = TaskStatus.PENDING
-    labels: List[str] = []
+    labels: Set[str] = set()
     due_date: Optional[date] = None
     sub_tasks: List = []
     user_id: UUID
@@ -36,7 +36,7 @@ class UpdateTask(BaseModel):
     id: UUID
     name: str
     status: TaskStatus
-    labels: List[str]
+    labels: Set[str] = set()
     due_date: Optional[date]
     sub_tasks: List
 

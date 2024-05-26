@@ -1,15 +1,23 @@
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any, Optional, Set
 from uuid import UUID
 
-from sqlalchemy import JSON
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import Column, ForeignKey, JSON, Table
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.domain.models import HistoryEntryType, HistoryEntryVersion, TaskStatus
 
 
 class Base(DeclarativeBase):
     type_annotation_map = {dict[str, Any]: JSON}
+
+
+task_label_table = Table(
+    "task_label",
+    Base.metadata,
+    Column("task_id", ForeignKey("task.id"), primary_key=True),
+    Column("label_id", ForeignKey("label.id"), primary_key=True),
+)
 
 
 class TaskEntity(Base):
@@ -19,11 +27,23 @@ class TaskEntity(Base):
 
     status: Mapped[TaskStatus]
     # TODO: create a new model for labels
-    # labels: Mapped[List[str]]
+    labels: Mapped[Set["LabelEntity"]] = relationship(
+        "LabelEntity", secondary=task_label_table, back_populates="tasks"
+    )
     due_date: Mapped[Optional[date]]
     # TODO: create a new model for sub tasks
     # sub_tasks: Mapped[List[Any]]
     user_id: Mapped[UUID]
+
+
+class LabelEntity(Base):
+    __tablename__ = "label"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    tasks: Mapped[Set[TaskEntity]] = relationship(
+        "TaskEntity", secondary=task_label_table, back_populates="labels"
+    )
 
 
 class HistoryEntity(Base):

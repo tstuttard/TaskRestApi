@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from uuid import UUID, uuid4
 
 import pytest
@@ -19,9 +20,15 @@ from app.domain.errors import TaskAlreadyExists
 
 
 def test_create_task(task_manager: TaskManager, user_id_1: UUID) -> None:
-    task_to_create_1 = CreateTask(name="Dishes", user_id=user_id_1)
+    today = date.today()
+    task_to_create_1 = CreateTask(
+        name="Dishes", user_id=user_id_1, due_date=today, labels=["kitchen", "daily"]
+    )
     task_to_create_2 = CreateTask(
-        name="Wash Clothes", user_id=user_id_1, status=TaskStatus.DOING
+        name="Wash Clothes",
+        user_id=user_id_1,
+        status=TaskStatus.DOING,
+        due_date=today,
     )
     created_task_1 = task_manager.create_task(task_to_create_1)
     created_task_2 = task_manager.create_task(task_to_create_2)
@@ -31,12 +38,15 @@ def test_create_task(task_manager: TaskManager, user_id_1: UUID) -> None:
         name=task_to_create_1.name,
         status=TaskStatus.PENDING,
         user_id=task_to_create_1.user_id,
+        due_date=today,
+        labels={"kitchen", "daily"},
     )
     expected_task_2 = Task(
         id=created_task_2.id,
         name=task_to_create_2.name,
         status=TaskStatus.DOING,
         user_id=task_to_create_2.user_id,
+        due_date=today,
     )
 
     assert [created_task_1, created_task_2] == [
@@ -55,10 +65,15 @@ def test_create_task(task_manager: TaskManager, user_id_1: UUID) -> None:
 def test_get_tasks(task_manager: TaskManager, user_id_1: UUID, user_id_2: UUID) -> None:
 
     created_task_1 = task_manager.create_task(
-        CreateTask(name="Dishes", user_id=user_id_1)
+        CreateTask(name="Dishes", user_id=user_id_1, labels={"kitchen", "daily"})
     )
     created_task_2 = task_manager.create_task(
-        CreateTask(name="Wash Clothes", user_id=user_id_1, status=TaskStatus.DOING)
+        CreateTask(
+            name="Wash Clothes",
+            user_id=user_id_1,
+            status=TaskStatus.DOING,
+            labels={"daily", "outside"},
+        )
     )
     task_manager.create_task(
         CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DONE)
@@ -91,12 +106,13 @@ def test_update_tasks(
 ) -> None:
 
     created_task_1 = task_manager.create_task(
-        CreateTask(name="Dishes", user_id=user_id_1)
+        CreateTask(name="Dishes", user_id=user_id_1, labels=["kitchen", "daily"])
     )
 
     fields_to_update = {
         "name": "Wash & Dry Dishes",
         "status": TaskStatus.DONE,
+        "labels": {"kitchen", "hourly"},
     }
     expected_task = created_task_1.model_copy(update=fields_to_update)
 
@@ -140,7 +156,7 @@ def test_delete_task(
 ) -> None:
 
     task_to_be_deleted = task_manager.create_task(
-        CreateTask(name="Dishes", user_id=user_id_1)
+        CreateTask(name="Dishes", user_id=user_id_1, label={"kitchen", "daily"})
     )
 
     deleted_task = task_manager.delete_task(
@@ -221,7 +237,12 @@ def test_get_last_history_entry_returns_none(
 
 def test_restore_task(task_manager: TaskManager, user_id_1: UUID) -> None:
     created_task = task_manager.create_task(
-        CreateTask(name="Dishes", user_id=user_id_1, status=TaskStatus.DONE)
+        CreateTask(
+            name="Dishes",
+            user_id=user_id_1,
+            status=TaskStatus.DONE,
+            labels={"kitchen", "daily"},
+        )
     )
     task_manager.delete_task(created_task.id, user_id_1)
     assert task_manager.get_task(created_task.id, user_id_1) is None
