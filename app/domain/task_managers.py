@@ -154,3 +154,20 @@ class InMemoryTaskManager(TaskManager):
         )
 
         return deleted_task
+
+
+class SqliteTaskManager(TaskManager):
+    def create_task(self, create_task: CreateTask) -> Task:
+        pass
+
+    def get_task(self, task_id: UUID, user_id: UUID) -> Task:
+        pass
+
+    def get_tasks(self, user_id: UUID) -> List[Task]:
+        pass
+
+    def update_task(self, update_task: UpdateTask, user_id: UUID) -> Optional[Task]:
+        pass
+
+    def delete_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
+        pass

@@ -1,9 +1,12 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Python tests in tests" type="tests" factoryName="Autodetect" nameIsGenerated="true">
+  <configuration default="false" name="Python tests (in_memory)" type="tests" factoryName="Autodetect">
     <module name="TaskRestApi" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="TASK_MANAGER_TYPE" value="in_memory" />
+    </envs>
     <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/app/tests" />
     <option name="IS_MODULE_SDK" value="true" />

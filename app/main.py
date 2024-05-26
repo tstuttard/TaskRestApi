@@ -10,7 +10,9 @@ def create_app() -> FastAPI:
     app = FastAPI()
     app.include_router(api_router)
     container = Container()
-    container.task_manager.override(providers.Singleton(InMemoryTaskManager))
+    container.config.task_manager.type.from_env(
+        "TASK_MANAGER_TYPE", default="in_memory"
+    )
     app.container = container
     return app
 
