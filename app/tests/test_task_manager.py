@@ -1,6 +1,8 @@
 import json
 from uuid import UUID, uuid4
 
+import pytest
+
 from app.domain.task_managers import (
     TaskManager,
 )
@@ -13,6 +15,7 @@ from app.domain.models import (
     HistoryEntryType,
     HistoryEntryVersion,
 )
+from app.domain.errors import TaskAlreadyExists
 
 
 def test_create_task(task_manager: TaskManager, user_id_1: UUID) -> None:
@@ -216,3 +219,57 @@ def test_get_last_history_entry_returns_none(
         event=created_task_1.model_dump_json(),
         created_at=history_entry.created_at,
     )
+
+
+def test_restore_task(task_manager: TaskManager, user_id_1: UUID) -> None:
+    created_task = task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1, status=TaskStatus.DONE)
+    )
+    task_manager.delete_task(created_task.id, user_id_1)
+    assert task_manager.get_task(created_task.id, user_id_1) is None
+
+    restored_task = task_manager.restore_task(created_task.id, user_id_1)
+
+    assert restored_task == created_task
+    assert task_manager.get_task(created_task.id, user_id_1) == restored_task
+
+
+def test_restore_task_returns_none(
+    task_manager: TaskManager, user_id_1: UUID, user_id_2
+) -> None:
+    user_id_3 = uuid4()
+    created_task_1 = task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1)
+    )
+    created_task_2 = task_manager.create_task(
+        CreateTask(name="Wash Clothes", user_id=user_id_2, status=TaskStatus.DOING)
+    )
+    created_task_3 = task_manager.create_task(
+        CreateTask(name="Cook", user_id=user_id_1, status=TaskStatus.DOING)
+    )
+    task_manager.delete_task(created_task_1.id, user_id_1)
+    task_manager.delete_task(created_task_2.id, user_id_2)
+    task_manager.delete_task(created_task_3.id, user_id_1)
+
+    assert task_manager.restore_task(created_task_1.id, user_id=user_id_3) is None
+    assert task_manager.restore_task(created_task_1.id, user_id=user_id_2) is None
+    assert task_manager.restore_task(created_task_3.id, user_id=user_id_3) is None
+
+
+def test_restore_task_already_exists(
+    task_manager: TaskManager, user_id_1: UUID
+) -> None:
+    created_task = task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1, status=TaskStatus.DONE)
+    )
+    task_manager.delete_task(created_task.id, user_id_1)
+    assert task_manager.get_task(created_task.id, user_id_1) is None
+
+    task_manager.restore_task(created_task.id, user_id_1)
+
+    with pytest.raises(
+        TaskAlreadyExists,
+    ) as e:
+        task_manager.restore_task(created_task.id, user_id_1)
+
+    assert e.value.task_id == created_task.id

@@ -5,6 +5,9 @@
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="TASK_MANAGER_TYPE" value="sqlite" />
+    </envs>
     <option name="SDK_HOME" value="$USER_HOME$/Library/Caches/pypoetry/virtualenvs/taskrestapi--u1EhyJj-py3.9/bin/python" />
     <option name="SDK_NAME" value="Poetry (TaskRestApi)" />
     <option name="WORKING_DIRECTORY" value="" />

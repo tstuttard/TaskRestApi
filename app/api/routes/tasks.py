@@ -127,3 +127,26 @@ def update_task(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"key": "task_not_found", "message": "task not found"},
         )
+
+
+@router.post(
+    "/{task_id}/restore",
+    response_model=StandardResponse[TaskResource],
+    status_code=status.HTTP_200_OK,
+)
+@inject
+def restore_task(
+    task_id: UUID,
+    user_id: UUID,
+    task_manager: TaskManager = Depends(Provide[Container.task_manager]),
+) -> StandardResponse[TaskResource]:
+
+    task = task_manager.restore_task(task_id, user_id)
+
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"key": "task_not_found", "message": "task not found"},
+        )
+
+    return StandardResponse[TaskResource](data=task.model_dump())

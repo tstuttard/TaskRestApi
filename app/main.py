@@ -2,8 +2,10 @@ import os
 
 from fastapi import FastAPI
 
+from app.api.exception_handlers import task_already_exists_exception_handler
 from app.api.main import api_router
 from app.containers import Container
+from app.domain.errors import TaskAlreadyExists
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -28,6 +30,7 @@ def create_app() -> FastAPI:
         "TASK_MANAGER_TYPE", default="in_memory"
     )
     app.container = container
+    app.add_exception_handler(TaskAlreadyExists, task_already_exists_exception_handler)
     return app
 
 

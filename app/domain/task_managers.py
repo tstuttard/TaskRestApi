@@ -17,6 +17,7 @@ from app.domain.models import (
     HistoryEntryType,
     HistoryEntryVersion,
 )
+from app.domain.errors import TaskAlreadyExists
 
 
 class TaskManager(metaclass=abc.ABCMeta):
@@ -45,6 +46,10 @@ class TaskManager(metaclass=abc.ABCMeta):
     def get_last_history_entry(
         self, task_id: UUID, user_id: UUID
     ) -> Optional[HistoryEntry]:
+        pass
+
+    @abc.abstractmethod
+    def restore_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
         pass
 
 
@@ -142,6 +147,24 @@ class InMemoryTaskManager(TaskManager):
         return sorted(
             user_history.get(task_id), key=lambda entry: entry.created_at, reverse=True
         )[0]
+
+    def restore_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
+        if self.get_task(task_id, user_id) is not None:
+            raise TaskAlreadyExists(task_id)
+
+        last_history_entry = self.get_last_history_entry(task_id, user_id)
+
+        if last_history_entry is None:
+            return None
+
+        deleted_task = Task(**json.loads(last_history_entry.model_dump().get("event")))
+
+        if deleted_task.user_id not in self.tasks:
+            self.tasks.update({deleted_task.user_id: {deleted_task.id: deleted_task}})
+        else:
+            self.tasks.get(deleted_task.user_id).update({deleted_task.id: deleted_task})
+
+        return deleted_task
 
 
 class SqliteTaskManager(TaskManager):
@@ -332,3 +355,33 @@ class SqliteTaskManager(TaskManager):
                 return None
 
             return history_entry
+
+    def restore_task(self, task_id: UUID, user_id: UUID) -> Optional[Task]:
+        if self.get_task(task_id, user_id) is not None:
+            raise TaskAlreadyExists(task_id)
+
+        last_history_entry = self.get_last_history_entry(task_id, user_id)
+
+        if last_history_entry is None:
+            return None
+
+        deleted_task = Task(**json.loads(last_history_entry.model_dump().get("event")))
+
+        with self.session_factory() as session:
+
+            statement = insert(TaskEntity).values(
+                id=deleted_task.id,
+                name=deleted_task.name,
+                status=deleted_task.status,
+                # labels=deleted_task.labels,
+                due_date=deleted_task.due_date,
+                # sub_tasks=deleted_task.sub_tasks,
+                user_id=deleted_task.user_id,
+            )
+            result = session.execute(statement)
+            session.commit()
+
+            if result.rowcount == 0:
+                return None
+
+            return deleted_task

@@ -1,7 +1,7 @@
 # Test your FastAPI endpoints
 
-@user_id_1 = "c2daaf1e-b373-49e2-94f3-1a55ff80b0d1"
-@user_id_2 = "a6883ad9-794e-4ba9-903a-eed539b84677"
+@user_id_1 = 9db7de96-7e8f-4c79-b8e4-0efb26a1069d
+@user_id_2 = a6883ad9-794e-4ba9-903a-eed539b84676
 
 ### Create Task
 POST http://127.0.0.1:8000/tasks?user_id={{user_id_1}}
@@ -47,14 +47,14 @@ Accept: application/json
 
 {
   "id": "{{task_id}}",
-  "name": "Wash & Dry Dishes",
+  "name": "Wash & Dry Dishes 3",
   "status": "Done",
   "due_date": null,
   "labels": [],
   "sub_tasks": []
 }
 
-### Delete Task of a Different User
+### Delete Task
 
 DELETE http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_1}}
 Accept: application/json
@@ -64,3 +64,8 @@ Accept: application/json
 DELETE http://127.0.0.1:8000/tasks/{{task_id}}?user_id={{user_id_2}}
 Accept: application/json
 
+
+### Restore Task
+
+POST http://127.0.0.1:8000/tasks/{{task_id}}/restore?user_id={{user_id_1}}
+Accept: application/json

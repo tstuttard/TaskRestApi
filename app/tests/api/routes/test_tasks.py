@@ -5,7 +5,7 @@ from httpx import QueryParams
 from starlette.testclient import TestClient
 from fastapi import status, FastAPI
 from app.domain.task_managers import TaskManager
-from app.domain.models import CreateTask
+from app.domain.models import CreateTask, TaskStatus
 from tests.conftest import user_id_1
 
 
@@ -23,9 +23,10 @@ def test_create_task(client: TestClient, user_id_1: UUID) -> None:
     )
 
     create_task_payload = create_task_response.json()
+    task_id = create_task_payload["data"]["id"]
     expected_task_payload = {
         "data": {
-            "id": create_task_payload["data"]["id"],  # id is generated from server
+            "id": task_id,
             "name": create_task_request_body["name"],
             "status": "Pending",
             "due_date": None,
@@ -36,14 +37,7 @@ def test_create_task(client: TestClient, user_id_1: UUID) -> None:
     assert create_task_payload == expected_task_payload
     assert create_task_response.status_code == status.HTTP_201_CREATED
 
-    get_task_response = client.get(
-        f"/tasks/{create_task_payload['data']['id']}",
-        params=QueryParams(user_id=user_id_1),
-    )
-
-    get_task_response_json = get_task_response.json()
-    assert get_task_response_json == expected_task_payload
-    assert get_task_response.status_code == status.HTTP_200_OK
+    assert_task_exists(client, task_id, user_id_1, expected_task_payload)
 
 
 def test_task_not_found(client: TestClient, user_id_1: UUID, user_id_2: UUID) -> None:
@@ -205,7 +199,9 @@ def test_update_task_not_found(
     assert update_tasks_response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_delete_task(client: TestClient, task_manager: TaskManager, user_id_1: UUID):
+def test_delete_task(
+    client: TestClient, task_manager: TaskManager, user_id_1: UUID
+) -> None:
     task = task_manager.create_task(CreateTask(name="Dishes", user_id=user_id_1))
 
     delete_tasks_response = client.delete(
@@ -231,3 +227,68 @@ def test_delete_task_not_found(
         "detail": {"key": "task_not_found", "message": "task not found"}
     }
     assert delete_task_response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_restore_task(
+    client: TestClient, task_manager: TaskManager, user_id_1: UUID
+) -> None:
+    task = task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1, status=TaskStatus.DONE)
+    )
+    task_manager.delete_task(task.id, user_id_1)
+
+    restore_task_response = client.post(
+        f"/tasks/{task.id}/restore", params=QueryParams(user_id=user_id_1)
+    )
+
+    restore_task_payload = restore_task_response.json()
+
+    expected_task_payload = {
+        "data": {
+            "id": str(task.id),  # id is generated from server
+            "name": task.name,
+            "status": "Done",
+            "due_date": None,
+            "labels": [],
+            "sub_tasks": [],
+        }
+    }
+    assert restore_task_payload == expected_task_payload
+
+    assert_task_exists(client, task.id, user_id_1, expected_task_payload)
+
+
+def test_restore_task_that_already_exists(
+    client: TestClient, task_manager: TaskManager, user_id_1: UUID
+) -> None:
+    task = task_manager.create_task(
+        CreateTask(name="Dishes", user_id=user_id_1, status=TaskStatus.DONE)
+    )
+    task_manager.delete_task(task.id, user_id_1)
+    task_manager.restore_task(task.id, user_id_1)
+
+    restore_task_response = client.post(
+        f"/tasks/{task.id}/restore", params=QueryParams(user_id=user_id_1)
+    )
+
+    restore_task_payload = restore_task_response.json()
+
+    assert restore_task_payload == {
+        "detail": {"key": "task_already_exists", "message": "task already exists"}
+    }
+    assert restore_task_response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def assert_task_exists(
+    client: TestClient,
+    task_id: UUID,
+    user_id_1: UUID,
+    expected_task_payload: dict,
+):
+    get_task_response = client.get(
+        f"/tasks/{task_id}",
+        params=QueryParams(user_id=user_id_1),
+    )
+    get_task_response_json = get_task_response.json()
+    assert get_task_response_json == expected_task_payload
+    assert get_task_response.status_code == status.HTTP_200_OK
